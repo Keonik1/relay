@@ -74,7 +74,7 @@ def run_cmd_options(parser):
     parser.add_argument(
         "--ssh-host",
         dest="ssh_host",
-        help="specify an SSH host to deploy to; uses mail_domain from chatmail.ini by default",
+        help="Deploy to 'localhost', via 'docker', or to a specific SSH host",
     )
     parser.add_argument(
         "--skip-dns-check",
@@ -103,7 +103,7 @@ def run_cmd(args, out):
     ssh_host = args.config.mail_domain if not args.ssh_host else args.ssh_host
 
     cmd = f"{pyinf} --ssh-user root {ssh_host} {deploy_path} -y"
-    if sshexec == "localhost":
+    if sshexec in ["docker", "localhost"]:
         cmd = f"{pyinf} @local {deploy_path} -y"
 
     if version.parse(pyinfra.__version__) < version.parse("3"):
@@ -136,6 +136,11 @@ def dns_cmd_options(parser):
         type=pathlib.Path,
         default=None,
         help="write out a zonefile",
+    )
+    parser.add_argument(
+        "--ssh-host",
+        dest="ssh_host",
+        help="Run the DNS queries on 'localhost', in the chatmail 'docker' container, or on a specific SSH host",
     )
 
 
@@ -370,6 +375,8 @@ def main(args=None):
         host = args.ssh_host if hasattr(args, "ssh_host") and args.ssh_host else args.config.mail_domain
         if host in [ "@local", "localhost" ]:
             return "localhost"
+        elif host == "docker":
+            return "docker"
         
         print(f"[ssh] login to {host}")
         return SSHExec(host, verbose=args.verbose)
